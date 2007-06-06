@@ -56,8 +56,7 @@
 # Redundant Internet Connections Using Linux by Seann Herdejurgen
 #   [www.samag.com/documents/s=1824/sam0201h/0201h.htm]
 # rc.firewall.iptables.dual version 1.2b3 by obsid@sentry.net
-#   [www.sentry.net/~obsid/IPTables/rc.scripts.dir/current/ \
-#   rc.firewall.iptables.dual]
+#   [www.sentry.net/~obsid/IPTables/rc.scripts.dir/current/rc.firewall.iptables.dual]
 #-------------------------------------------------------------------------------
 # $Id$
 ################################################################################
@@ -77,7 +76,7 @@ fi
 
 # TODO: Change interfaces.
 IFACE_NETW="eth0" # Network interface
-IFACE_LOC="lo" # Loopback
+IFACE_LOOP="lo" # Loopback
 
 #-------------------------------------------------------------------------------
 # Host and Network IP Addresses
@@ -308,41 +307,35 @@ install_targets() {
   # minute so that the log doesn't fill up.
   iptables -N TGT_FLOOD
   iptables -A TGT_FLOOD -m limit --limit 15/s --limit-burst 30 -j RETURN
-  iptables -A TGT_FLOOD -m limit --limit 5/m -j LOG \
-    --log-level $LOG_LEVEL_FLOOD --log-prefix "FW_FLOOD: "
+  iptables -A TGT_FLOOD -m limit --limit 5/m -j LOG --log-level $LOG_LEVEL_FLOOD --log-prefix "FW_FLOOD: "
   iptables -A TGT_FLOOD -j TGT_DROP
 
   # Log and drop malformed or impossible packets.
   iptables -N TGT_ILLEGAL
-  iptables -A TGT_ILLEGAL -j LOG --log-level $LOG_LEVEL_ILLEGAL \
-    --log-prefix "FW_ILLEGAL: "
+  iptables -A TGT_ILLEGAL -j LOG --log-level $LOG_LEVEL_ILLEGAL --log-prefix "FW_ILLEGAL: "
   iptables -A TGT_ILLEGAL -j TGT_DROP
 
   # Log and drop malicious packets that are associated with known security
   # exploits.
   iptables -N TGT_PROBE
-  iptables -A TGT_PROBE -j LOG --log-level $LOG_LEVEL_PROBE \
-    --log-prefix "FW_PROBE: "
+  iptables -A TGT_PROBE -j LOG --log-level $LOG_LEVEL_PROBE --log-prefix "FW_PROBE: "
   iptables -A TGT_PROBE -j TGT_DROP
 
   # Log and drop packets that look like scans. Don't log more than 5 packets per
   # minute so that the log doesn't fill up.
   iptables -N TGT_SCAN
-  iptables -A TGT_SCAN -m limit --limit 5/m -j LOG \
-    --log-level $LOG_LEVEL_SCAN --log-prefix "FW_SCAN: "
+  iptables -A TGT_SCAN -m limit --limit 5/m -j LOG --log-level $LOG_LEVEL_SCAN --log-prefix "FW_SCAN: "
   iptables -A TGT_SCAN -j TGT_DROP
   
   # Log and drop unknown packets. Don't log more than 5 packets per minute so
   # that the log doesn't fill up.
   iptables -N TGT_UNKNOWN
-  iptables -A TGT_UNKNOWN -m limit --limit 5/m -j LOG \
-    --log-level $LOG_LEVEL_UNKNOWN --log-prefix "FW_UNKNOWN: "
+  iptables -A TGT_UNKNOWN -m limit --limit 5/m -j LOG --log-level $LOG_LEVEL_UNKNOWN --log-prefix "FW_UNKNOWN: "
   iptables -A TGT_UNKNOWN -j TGT_DROP
 
   # Log and accept packets that we want to keep an eye on.
   iptables -N TGT_WATCH
-  iptables -A TGT_WATCH -j LOG --log-level $LOG_LEVEL_WATCH \
-    --log-prefix "FW_WATCH: "
+  iptables -A TGT_WATCH -j LOG --log-level $LOG_LEVEL_WATCH --log-prefix "FW_WATCH: "
   iptables -A TGT_WATCH -j TGT_ACCEPT
 }
 
@@ -356,40 +349,38 @@ install_bad_tcp_in() {
   
   # Be polite and deny inbound AUTH connections (usually from broken email
   # servers).
-  iptables -A BAD_TCP_IN -p tcp --dport $PORT_AUTH -j TGT_TCP_REJECT_IN
+  iptables -A BAD_TCP_IN -p tcp --dport $PORT_AUTH -j TGT_REJECT
 
   # Segments with illegal TCP flags.
-  iptables -A BAD_TCP_IN -p tcp --tcp-option 64 -j TGT_ILLEGAL_IN
-  iptables -A BAD_TCP_IN -p tcp --tcp-option 128 -j TGT_ILLEGAL_IN
+  iptables -A BAD_TCP_IN -p tcp --tcp-option 64 -j TGT_ILLEGAL
+  iptables -A BAD_TCP_IN -p tcp --tcp-option 128 -j TGT_ILLEGAL
 
   # Segments pretending to be part of an established connection.
-  iptables -A BAD_TCP_IN -p tcp ! --syn -m state --state NEW \
-    -j TGT_ILLEGAL_IN
+  iptables -A BAD_TCP_IN -p tcp ! --syn -m state --state NEW -j TGT_ILLEGAL
   
   # Segments with every flag bit set (XMAS tree packets).
-  iptables -A BAD_TCP_IN -p tcp --tcp-flags ALL ALL -j TGT_ILLEGAL_IN
+  iptables -A BAD_TCP_IN -p tcp --tcp-flags ALL ALL -j TGT_ILLEGAL
   
   # Segments with no flag bits set (NULL packets).
-  iptables -A BAD_TCP_IN -p tcp --tcp-flags ALL NONE -j TGT_ILLEGAL_IN
+  iptables -A BAD_TCP_IN -p tcp --tcp-flags ALL NONE -j TGT_ILLEGAL
 
   # SYN flood DoS attacks.
-  iptables -A BAD_TCP_IN -p tcp --syn -j TGT_FLOOD_IN
+  iptables -A BAD_TCP_IN -p tcp --syn -j TGT_FLOOD
   
   # Stealth scan. Treat like flood because a few at a time are valid.
-  iptables -A BAD_TCP_IN -p tcp --tcp-flags SYN,ACK,FIN,RST RST \
-    -j TGT_FLOOD_IN
+  iptables -A BAD_TCP_IN -p tcp --tcp-flags SYN,ACK,FIN,RST RST -j TGT_FLOOD
   
   # XMAS scan, used by NMAP.
-  iptables -A BAD_TCP_IN -p tcp --tcp-flags ALL FIN,URG,PSH -j TGT_SCAN_IN
+  iptables -A BAD_TCP_IN -p tcp --tcp-flags ALL FIN,URG,PSH -j TGT_SCAN
   
   # SYN/RST scan.
-  iptables -A BAD_TCP_IN -p tcp --tcp-flags SYN,RST SYN,RST -j TGT_SCAN_IN
+  iptables -A BAD_TCP_IN -p tcp --tcp-flags SYN,RST SYN,RST -j TGT_SCAN
   
   # SYN/FIN scan.
-  iptables -A BAD_TCP_IN -p tcp --tcp-flags SYN,FIN SYN,FIN -j TGT_SCAN_IN
+  iptables -A BAD_TCP_IN -p tcp --tcp-flags SYN,FIN SYN,FIN -j TGT_SCAN
 
   # MyDoom backdoor scan.
-  iptables -A BAD_TCP_IN -p tcp --dport 3127 -j TGT_SCAN_IN
+  iptables -A BAD_TCP_IN -p tcp --dport 3127 -j TGT_SCAN
 }
 
 #-------------------------------------------------------------------------------
@@ -401,37 +392,37 @@ install_bad_any_in() {
   iptables -A INPUT -j BAD_ANY_IN
   
   # Ignore any Internet Group Management Protocol (IGMP) messages.
-  iptables -A BAD_ANY_IN -p $IPPROT_IGMP -j TGT_DISCARD_IN
+  iptables -A BAD_ANY_IN -p $IPPROT_IGMP -j TGT_DISCARD
   
   # Invalid packet.
-  iptables -A BAD_ANY_IN -m state --state INVALID -j TGT_ILLEGAL_IN
+  iptables -A BAD_ANY_IN -m state --state INVALID -j TGT_ILLEGAL
   
   # Packet fragments.
-  iptables -A BAD_ANY_IN -f -j TGT_ILLEGAL_IN
+  iptables -A BAD_ANY_IN -f -j TGT_ILLEGAL
   
   # Ping scan. Treat like flood because a few at a time are valid.
-  iptables -A BAD_ANY_IN -p icmp --icmp-type $ICMP_PING -j TGT_FLOOD_IN
+  iptables -A BAD_ANY_IN -p icmp --icmp-type $ICMP_PING -j TGT_FLOOD
 
   # Packets pretending to be headed for the loopback interface.
-  iptables -A BAD_ANY_IN -d $IPLOOP -j TGT_ILLEGAL_IN
+  iptables -A BAD_ANY_IN -d $IPLOOP -j TGT_ILLEGAL
   
   # Packets pretending to be from a private network address.
   for NETW in $PRIVATE; do
-    iptables -A BAD_ANY_IN -s $NETW -j TGT_ILLEGAL_IN
+    iptables -A BAD_ANY_IN -s $NETW -j TGT_ILLEGAL
   done
   
   # Packets pretending to be from a reserved address.
   for NETW in $RESERVED; do
-    iptables -A BAD_ANY_IN -s $NETW -j TGT_ILLEGAL_IN
+    iptables -A BAD_ANY_IN -s $NETW -j TGT_ILLEGAL
   done
   
   # Packets with a source port of zero. Started showing up in May, 2003.
-  iptables -A BAD_ANY_IN -p tcp --sport 0 -j TGT_ILLEGAL_IN
-  iptables -A BAD_ANY_IN -p udp --sport 0 -j TGT_ILLEGAL_IN
+  iptables -A BAD_ANY_IN -p tcp --sport 0 -j TGT_ILLEGAL
+  iptables -A BAD_ANY_IN -p udp --sport 0 -j TGT_ILLEGAL
   
   # Throw away MS SQL Server Slammer worm crap.
-  iptables -A BAD_ANY_IN -p tcp --dport 1433 -j TGT_DISCARD_IN
-  iptables -A BAD_ANY_IN -p udp --dport 1434 -j TGT_DISCARD_IN
+  iptables -A BAD_ANY_IN -p tcp --dport 1433 -j TGT_DISCARD
+  iptables -A BAD_ANY_IN -p udp --dport 1434 -j TGT_DISCARD
 }
 
 #-------------------------------------------------------------------------------
@@ -443,24 +434,24 @@ install_bad_any_out() {
   iptables -A OUTPUT -j BAD_ANY_OUT
 
   # Packets pretending to be part of an established connection.
-  iptables -A BAD_ANY_OUT -p tcp ! --syn -m state --state NEW -j TGT_ILLEGAL_OUT
+  iptables -A BAD_ANY_OUT -p tcp ! --syn -m state --state NEW -j TGT_ILLEGAL
 
   # Prevent information leak described by Red Hat Advisory RHSA-2002:086-05.
-  iptables -A BAD_ANY_OUT -p icmp -m state --state INVALID -j TGT_ILLEGAL_OUT
+  iptables -A BAD_ANY_OUT -p icmp -m state --state INVALID -j TGT_ILLEGAL
 
   # Packets heading for a private network address.
   for NETW in $PRIVATE; do
-    iptables -A BAD_ANY_OUT -d $NETW -j TGT_ILLEGAL_OUT
+    iptables -A BAD_ANY_OUT -d $NETW -j TGT_ILLEGAL
   done
 
   # Packets heading for a reserved address.
   for NETW in $RESERVED; do
-    iptables -A BAD_ANY_OUT -d $NETW -j TGT_ILLEGAL_OUT
+    iptables -A BAD_ANY_OUT -d $NETW -j TGT_ILLEGAL
   done
   
   # Packets with a source port of zero.
-  iptables -A BAD_ANY_OUT -p tcp --sport 0 -j TGT_ILLEGAL_OUT
-  iptables -A BAD_ANY_OUT -p udp --sport 0 -j TGT_ILLEGAL_OUT
+  iptables -A BAD_ANY_OUT -p tcp --sport 0 -j TGT_ILLEGAL
+  iptables -A BAD_ANY_OUT -p udp --sport 0 -j TGT_ILLEGAL
 }
 
 #-------------------------------------------------------------------------------
@@ -472,21 +463,17 @@ install_icmp_in() {
   iptables -A INPUT -p icmp -j ICMP_IN
 
   # Inbound ping (echo request) messages.
-  iptables -A ICMP_IN -p icmp --icmp-type $ICMP_PING -m state --state NEW \
-    -j TGT_ACCEPT
+  iptables -A ICMP_IN -p icmp --icmp-type $ICMP_PING -m state --state NEW -j TGT_ACCEPT
 
   # Inbound pong (echo reply) messages from previous outbound ping queries.
-  iptables -A ICMP_IN -p icmp --icmp-type $ICMP_PONG -m state \
-    --state ESTABLISHED -j TGT_ACCEPT
+  iptables -A ICMP_IN -p icmp --icmp-type $ICMP_PONG -m state --state ESTABLISHED -j TGT_ACCEPT
 
   # Inbound time exceeded messages from previous outbound queries
   # (e.g. traceroute).
-  iptables -A ICMP_IN -p icmp --icmp-type $ICMP_TIME_EXCEEDED -m state \
-    --state RELATED -j TGT_ACCEPT
+  iptables -A ICMP_IN -p icmp --icmp-type $ICMP_TIME_EXCEEDED -m state --state RELATED -j TGT_ACCEPT
 
   # Inbound unreachable messages from previous outbound queries.
-  iptables -A ICMP_IN -p icmp --icmp-type $ICMP_UNREACHABLE -m state \
-    --state RELATED -j TGT_ACCEPT
+  iptables -A ICMP_IN -p icmp --icmp-type $ICMP_UNREACHABLE -m state --state RELATED -j TGT_ACCEPT
 }
 
 #-------------------------------------------------------------------------------
@@ -498,21 +485,17 @@ install_icmp_out() {
   iptables -A OUTPUT -p icmp -j ICMP_OUT
 
   # Outbound ping (echo request) messages.
-  iptables -A ICMP_OUT -p icmp --icmp-type $ICMP_PING -m state --state NEW \
-    -j TGT_ACCEPT
+  iptables -A ICMP_OUT -p icmp --icmp-type $ICMP_PING -m state --state NEW -j TGT_ACCEPT
 
   # Outbound pong (echo reply) messages from previous inbound ping queries.
-  iptables -A ICMP_OUT -p icmp --icmp-type $ICMP_PONG -m state \
-    --state ESTABLISHED -j TGT_ACCEPT
+  iptables -A ICMP_OUT -p icmp --icmp-type $ICMP_PONG -m state --state ESTABLISHED -j TGT_ACCEPT
 
   # Outbound time exceeded messages from previous inbound queries
   # (e.g. traceroute).
-  iptables -A ICMP_OUT -p icmp --icmp-type $ICMP_TIME_EXCEEDED -m state \
-    --state RELATED -j TGT_ACCEPT
+  iptables -A ICMP_OUT -p icmp --icmp-type $ICMP_TIME_EXCEEDED -m state --state RELATED -j TGT_ACCEPT
 
   # Outbound unreachable messages from previous inbound queries.
-  iptables -A ICMP_OUT -p icmp --icmp-type $ICMP_UNREACHABLE -m state \
-    --state RELATED -j TGT_ACCEPT
+  iptables -A ICMP_OUT -p icmp --icmp-type $ICMP_UNREACHABLE -m state --state RELATED -j TGT_ACCEPT
 }
 
 #-------------------------------------------------------------------------------
@@ -524,44 +507,31 @@ install_tcp_in() {
   iptables -A INPUT -i $IFACE_NETW -p tcp -j TCP_IN
 
   # Inbound SSH connections from local network.
-  iptables -A TCP_IN -p tcp -s $IPNETW --dport $PORT_SSH -m state \
-    --state NEW,ESTABLISHED -j TGT_ACCEPT
+  iptables -A TCP_IN -p tcp -s $IPNETW --dport $PORT_SSH -m state --state NEW,ESTABLISHED -j TGT_ACCEPT
 
   # Inbound and outbound web connections.
-  iptables -A TCP_IN -p tcp --dport $PORT_HTTP -m state \
-    --state NEW,ESTABLISHED -j TGT_ACCEPT
-
-  iptables -A TCP_IN -p tcp --sport $PORT_HTTP -m state \
-    --state ESTABLISHED -j TGT_ACCEPT
+  iptables -A TCP_IN -p tcp --dport $PORT_HTTP -m state --state NEW,ESTABLISHED -j TGT_ACCEPT
+  iptables -A TCP_IN -p tcp --sport $PORT_HTTP -m state --state ESTABLISHED -j TGT_ACCEPT
   
   # Inbound secure web connections.
-  iptables -A TCP_IN -p tcp --dport $PORT_HTTPS -m state \
-    --state NEW,ESTABLISHED -j TGT_ACCEPT
+  iptables -A TCP_IN -p tcp --dport $PORT_HTTPS -m state --state NEW,ESTABLISHED -j TGT_ACCEPT
 
   # Inbound and outbound email connections.
-  iptables -A TCP_IN -p tcp --dport $PORT_SMTP -m state \
-    --state NEW,ESTABLISHED -j TGT_ACCEPT
-    
-  iptables -A TCP_IN -p tcp --sport $PORT_SMTP -m state \
-    --state ESTABLISHED -j TGT_ACCEPT
+  iptables -A TCP_IN -p tcp --dport $PORT_SMTP -m state --state NEW,ESTABLISHED -j TGT_ACCEPT
+  iptables -A TCP_IN -p tcp --sport $PORT_SMTP -m state --state ESTABLISHED -j TGT_ACCEPT
   
   # Inbound POP3 connections from local network.
-  iptables -A TCP_IN -p tcp -s $IPNETW --dport $PORT_POP -m state \
-    --state NEW,ESTABLISHED -j TGT_ACCEPT
+  iptables -A TCP_IN -p tcp -s $IPNETW --dport $PORT_POP -m state --state NEW,ESTABLISHED -j TGT_ACCEPT
 
   # Inbound printing connections from local network.
-  iptables -A TCP_IN -p tcp -s $IPNETW --dport $PORT_CUPS -m state \
-    --state NEW,ESTABLISHED -j TGT_ACCEPT
+  iptables -A TCP_IN -p tcp -s $IPNETW --dport $PORT_CUPS -m state --state NEW,ESTABLISHED -j TGT_ACCEPT
   
   # Outbound RSYNC connections.
-  iptables -A TCP_IN -p tcp --sport $PORT_RSYNC -m state \
-    --state ESTABLISHED -j TGT_ACCEPT
+  iptables -A TCP_IN -p tcp --sport $PORT_RSYNC -m state --state ESTABLISHED -j TGT_ACCEPT
 
   # Inbound SAMBA connections from local network.
-  iptables -A TCP_IN -p tcp -s $IPNETW --dport $PORT_MSNBSSN -m state \
-    --state NEW,ESTABLISHED -j TGT_ACCEPT
-  iptables -A TCP_IN -p tcp -s $IPNETW --dport $PORT_MSDS -m state \
-    --state NEW,ESTABLISHED -j TGT_ACCEPT
+  iptables -A TCP_IN -p tcp -s $IPNETW --dport $PORT_MSNBSSN -m state --state NEW,ESTABLISHED -j TGT_ACCEPT
+  iptables -A TCP_IN -p tcp -s $IPNETW --dport $PORT_MSDS -m state --state NEW,ESTABLISHED -j TGT_ACCEPT
 }
 
 #-------------------------------------------------------------------------------
@@ -573,47 +543,34 @@ install_tcp_out() {
   iptables -A OUTPUT -o $IFACE_NETW -p tcp -j TCP_OUT
 
   # Inbound SSH connections from local network.
-  iptables -A TCP_OUT -p tcp -d $IPNETW --sport $PORT_SSH -m state \
-    --state ESTABLISHED -j TGT_ACCEPT
+  iptables -A TCP_OUT -p tcp -d $IPNETW --sport $PORT_SSH -m state --state ESTABLISHED -j TGT_ACCEPT
 
   # Inbound and outbound web connections.
-  iptables -A TCP_OUT -p tcp --sport $PORT_HTTP -m state \
-    --state ESTABLISHED -j TGT_ACCEPT
-
-  iptables -A TCP_OUT -p tcp --dport $PORT_HTTP -m state \
-    --state NEW,ESTABLISHED -j TGT_ACCEPT
+  iptables -A TCP_OUT -p tcp --sport $PORT_HTTP -m state --state ESTABLISHED -j TGT_ACCEPT
+  iptables -A TCP_OUT -p tcp --dport $PORT_HTTP -m state --state NEW,ESTABLISHED -j TGT_ACCEPT
   
   # Inbound secure web connections.
-  iptables -A TCP_OUT -p tcp --sport $PORT_HTTPS -m state \
-    --state ESTABLISHED -j TGT_ACCEPT
+  iptables -A TCP_OUT -p tcp --sport $PORT_HTTPS -m state --state ESTABLISHED -j TGT_ACCEPT
 
   # Inbound and outbound email connections.
-  iptables -A TCP_OUT -p tcp --sport $PORT_SMTP -m state \
-    --state ESTABLISHED -j TGT_ACCEPT
-  
-  iptables -A TCP_OUT -p tcp --dport $PORT_SMTP -m state \
-    --state NEW,ESTABLISHED -j TGT_ACCEPT
+  iptables -A TCP_OUT -p tcp --sport $PORT_SMTP -m state --state ESTABLISHED -j TGT_ACCEPT
+  iptables -A TCP_OUT -p tcp --dport $PORT_SMTP -m state --state NEW,ESTABLISHED -j TGT_ACCEPT
   
   # Inbound POP3 connections from LAN.
-  iptables -A TCP_OUT -p tcp -d $IPNETW --sport $PORT_POP -m state \
-    --state ESTABLISHED -j TGT_ACCEPT
+  iptables -A TCP_OUT -p tcp -d $IPNETW --sport $PORT_POP -m state --state ESTABLISHED -j TGT_ACCEPT
 
   # Reject outbound AUTH/IDENTD connections.
   iptables -A TCP_OUT -p tcp --dport $PORT_AUTH -j TGT_REJECT
   
   # Inbound printing connections from local network.
-  iptables -A TCP_OUT -p tcp -d $IPNETW --sport $PORT_CUPS -m state \
-    --state ESTABLISHED -j TGT_ACCEPT
+  iptables -A TCP_OUT -p tcp -d $IPNETW --sport $PORT_CUPS -m state --state ESTABLISHED -j TGT_ACCEPT
 
   # Outbound RSYNC connections.
-  iptables -A TCP_OUT -p tcp --dport $PORT_RSYNC -m state \
-    --state NEW,ESTABLISHED -j TGT_ACCEPT
+  iptables -A TCP_OUT -p tcp --dport $PORT_RSYNC -m state --state NEW,ESTABLISHED -j TGT_ACCEPT
 
   # Inbound SAMBA connections from local network.
-  iptables -A TCP_OUT -p tcp -d $IPNETW --sport $PORT_MSNBSSN -m state \
-    --state ESTABLISHED -j TGT_ACCEPT
-  iptables -A TCP_OUT -p tcp -d $IPNETW --sport $PORT_MSDS -m state \
-    --state ESTABLISHED -j TGT_ACCEPT
+  iptables -A TCP_OUT -p tcp -d $IPNETW --sport $PORT_MSNBSSN -m state --state ESTABLISHED -j TGT_ACCEPT
+  iptables -A TCP_OUT -p tcp -d $IPNETW --sport $PORT_MSDS -m state --state ESTABLISHED -j TGT_ACCEPT
 }
 
 #-------------------------------------------------------------------------------
@@ -625,24 +582,19 @@ install_udp_in() {
   iptables -A INPUT -i $IFACE_NETW -p udp -j UDP_IN
 
   # Inbound DNS queries from LAN.
-  iptables -A UDP_IN -s $IPNETW -p udp --dport $PORT_DNS -m state \
-    --state NEW,ESTABLISHED -j TGT_ACCEPT
+  iptables -A UDP_IN -s $IPNETW -p udp --dport $PORT_DNS -m state --state NEW,ESTABLISHED -j TGT_ACCEPT
 
   # Outbound DNS queries to primary server.
-  iptables -A UDP_IN -s $DNS_IPADDR_1 -p udp --sport $PORT_DNS -m state \
-    --state ESTABLISHED -j TGT_ACCEPT
+  iptables -A UDP_IN -s $DNS_IPADDR_1 -p udp --sport $PORT_DNS -m state --state ESTABLISHED -j TGT_ACCEPT
 
   # Outbound DNS queries to secondary server.
-  iptables -A UDP_IN -s $DNS_IPADDR_2 -p udp --sport $PORT_DNS -m state \
-    --state ESTABLISHED -j TGT_ACCEPT
+  iptables -A UDP_IN -s $DNS_IPADDR_2 -p udp --sport $PORT_DNS -m state --state ESTABLISHED -j TGT_ACCEPT
 
   # Outbound NTP queries.
-  iptables -A UDP_IN -p udp --sport $PORT_NTP -m state \
-    --state ESTABLISHED -j TGT_ACCEPT
+  iptables -A UDP_IN -p udp --sport $PORT_NTP -m state --state ESTABLISHED -j TGT_ACCEPT
 
   # NetBEUI broadcast traffic for Samba (source port == destination port).
-  iptables -A UDP_IN -p udp -m multiport --ports $PORT_MSNBNS,$PORT_MSNBDG \
-    -j TGT_ACCEPT
+  iptables -A UDP_IN -p udp -m multiport --ports $PORT_MSNBNS,$PORT_MSNBDG -j TGT_ACCEPT
 }
 
 #-------------------------------------------------------------------------------
@@ -654,28 +606,22 @@ install_udp_out() {
   iptables -A OUTPUT -o $IFACE_NETW -p udp -j UDP_OUT
 
   # Inbound DNS queries from LAN.
-  iptables -A UDP_OUT -d $IPNETW -p udp --sport $PORT_DNS -m state \
-    --state ESTABLISHED -j TGT_ACCEPT
+  iptables -A UDP_OUT -d $IPNETW -p udp --sport $PORT_DNS -m state --state ESTABLISHED -j TGT_ACCEPT
 
   # Outbound DNS queries to primary server.
-  iptables -A UDP_OUT -d $DNS_IPADDR_1 -p udp --dport $PORT_DNS -m state \
-    --state NEW,ESTABLISHED -j TGT_ACCEPT
+  iptables -A UDP_OUT -d $DNS_IPADDR_1 -p udp --dport $PORT_DNS -m state --state NEW,ESTABLISHED -j TGT_ACCEPT
 
   # Outbound DNS queries to secondary server.
-  iptables -A UDP_OUT -d $DNS_IPADDR_2 -p udp --dport $PORT_DNS -m state \
-    --state NEW,ESTABLISHED -j TGT_ACCEPT
+  iptables -A UDP_OUT -d $DNS_IPADDR_2 -p udp --dport $PORT_DNS -m state --state NEW,ESTABLISHED -j TGT_ACCEPT
 
   # Outbound NTP queries.
-  iptables -A UDP_OUT -p udp --dport $PORT_NTP -m state \
-    --state NEW,ESTABLISHED -j TGT_ACCEPT
+  iptables -A UDP_OUT -p udp --dport $PORT_NTP -m state --state NEW,ESTABLISHED -j TGT_ACCEPT
 
   # Outbound traceroute queries.
-  iptables -A UDP_OUT -p udp --dport $PORTS_TRACEROUTE -m state \
-    --state NEW -j TGT_ACCEPT
+  iptables -A UDP_OUT -p udp --dport $PORTS_TRACEROUTE -m state --state NEW -j TGT_ACCEPT
 
   # NetBEUI broadcast traffic for Samba (source port == destination port).
-  iptables -A UDP_OUT -p udp -m multiport --ports $PORT_MSNBNS,$PORT_MSNBDG \
-    -j TGT_ACCEPT
+  iptables -A UDP_OUT -p udp -m multiport --ports $PORT_MSNBNS,$PORT_MSNBDG -j TGT_ACCEPT
 }
 
 #-------------------------------------------------------------------------------
