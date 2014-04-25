@@ -1,17 +1,17 @@
 #!/bin/bash
 ################################################################################
 # klondike-standalone
-# A shell script to configure stateful packet-filter rules for a netfilter/
-# iptables standalone firewall.
+# A shell script to configure a stateful netfilter/iptables IPv4
+# packet-filtering firewall standalone firewall.
 #-------------------------------------------------------------------------------
 # chkconfig: 2345 11 89
 # description: Configuration rules for stateful packet-filter iptables firewall.
 #-------------------------------------------------------------------------------
-# This script must run after the main iptables rc script (usually,
-# /etc/rc.d/init.d/iptables) and should also run after the main networking rc
-# script (usually /etc/rc.d/init.d/network). For safety's sake, the main
-# iptables script should run before networking starts, and should set the
-# default policy for all built-in chains to DROP.
+# This script must run after the main iptables rc script (assuming there is one)
+# and should also run after the main networking rc script (usually
+# /etc/init.d/networking). For safety's sake, the main iptables script should
+# run before networking starts, and should set the default policy for all
+# built-in chains to DROP.
 #
 # Replace all items marked "TODO" with your own network values. The existing
 # rules assume a private class-C LAN, so you'll have to adjust as necessary.
@@ -56,8 +56,6 @@
 #   [www.samag.com/documents/s=1824/sam0201h/0201h.htm]
 # rc.firewall.iptables.dual version 1.2b3 by obsid@sentry.net
 #   [www.sentry.net/~obsid/IPTables/rc.scripts.dir/current/rc.firewall.iptables.dual]
-#-------------------------------------------------------------------------------
-# $Id$
 ################################################################################
 
 #-------------------------------------------------------------------------------
@@ -91,8 +89,8 @@ IPLOOP="127.0.0.0/8" # Loopback
 # Known Remote Host IP Addresses
 
 # TODO: Change DNS server addresses.
-DNS_IPADDR_1="199.247.235.6"
-DNS_IPADDR_2="199.247.235.7"
+DNS_IPADDR_1="8.8.8.8"
+DNS_IPADDR_2="8.8.4.4"
 
 # TODO: Add any other fixed IPs of interest.
 
