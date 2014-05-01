@@ -110,10 +110,12 @@ RESERVED="0.0.0.0/8 1.0.0.0/8 2.0.0.0/8 240.0.0.0/4"
 # Known Remote Host IP Addresses
 
 # TODO: Change DNS server addresses.
-DNS_NET_1="10.11.12.13"
-DNS_NET_2="10.11.12.13"
+DNS_NET_1="8.8.8.8"
+DNS_NET_2="8.8.4.4"
 
-# TODO: Add any other fixed IPs of interest.
+# TODO: Add any other fixed IPs of interest. Since we're in the Yukon, here are
+# NorthwesTel's, as near as I've been able to figure.
+NORTHWESTEL_IPS="76.9.32.0/19 198.135.216.0/24 198.235.192.0/20 199.85.192.0/18 199.247.0.0/16 205.234.32.0/19 207.189.224.0/19 216.108.0.0/16 216.126.96.0/19"
 
 #-------------------------------------------------------------------------------
 # Known IP Protocols (other than TCP, UDP, ICMP)

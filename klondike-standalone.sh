@@ -92,7 +92,9 @@ IPLOOP="127.0.0.0/8" # Loopback
 DNS_IPADDR_1="8.8.8.8"
 DNS_IPADDR_2="8.8.4.4"
 
-# TODO: Add any other fixed IPs of interest.
+# TODO: Add any other fixed IPs of interest. Since we're in the Yukon, here are
+# NorthwesTel's, as near as I've been able to figure.
+NORTHWESTEL_IPS="76.9.32.0/19 198.135.216.0/24 198.235.192.0/20 199.85.192.0/18 199.247.0.0/16 205.234.32.0/19 207.189.224.0/19 216.108.0.0/16 216.126.96.0/19"
 
 #-------------------------------------------------------------------------------
 # Private and Reserved Network IP Addresses
