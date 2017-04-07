@@ -1,12 +1,18 @@
 #!/bin/bash
+### BEGIN INIT INFO
+# Provides:          klondike
+# Required-Start:    $local_fs $network
+# Required-Stop:     $local_fs $network
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: klondike
+# Description:       Configuration rules for stateful packet-filter iptables firewall.
+### END INIT INFO
 ################################################################################
 # klondike-router
 # A shell script to configure a stateful netfilter/iptables IPv4
 # packet-filtering firewall routing firewall.
-#-------------------------------------------------------------------------------
-# chkconfig: 35 11 89
-# description: Configuration rules for stateful packet-filter iptables firewall.
-#-------------------------------------------------------------------------------
+#
 # This script must run after the main iptables rc script (assuming there is one)
 # and should also run after the main networking rc script (usually
 # /etc/init.d/networking). For safety's sake, the main iptables script should
