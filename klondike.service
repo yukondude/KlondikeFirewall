@@ -1,0 +1,10 @@
+[Unit]
+Description=Klondike: stateful packet-filter rules for a netfilter/iptables firewall.
+After=network.target
+
+[Service]
+ExecStart=/etc/init.d/klondike start
+Type=simple
+
+[Install]
+WantedBy=multi-user.target
